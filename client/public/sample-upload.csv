@@ -1,0 +1,26 @@
+apaar_id,student_id,name,dob,gender,category,nri,oci,fn,supernumerary,program,admission_year,email,phone,status
+304964737892,DIT25001,RAHUL BOSE,08/05/07,Female,Gen,N,N,N,N,B.Tech Computer Science,2025,s0@mail.example,+91 9810000000,Admitted
+304964817088,DIT25002,PRIYA DESHMUKH,20/03/07,male,sc,N,N,N,N,B.Tech Electronics,2025,s1@mail.example,+91 9810000137,Admitted
+304964896258,DIT25003,DIYA BOSE,11/08/07,male,OBC,N,N,N,N,B.Tech Mechanical,2025,s2@mail.example,+91 9810000274,Admitted
+304965975455,DIT25004,MEERA MALIK,22/10/07,Female,EWS,N,N,N,N,B.Tech Computer Science,2025,s3@mail.example,+91 9810000411,Admitted
+304965054659,DIT25005,VARUN RAO,07/05/07,male,EWS,N,N,N,N,B.Tech Electronics,2025,s4@mail.example,+91 9810000548,Admitted
+304965133859,DIT25006,FARHAN VERMA,18/01/06,male,general,N,N,N,N,B.Tech Mechanical,2025,s5@mail.example,+91 9810000685,Admitted
+304965213004,DIT25007,NEHA MORE,16/11/06,Female,OBC,N,N,N,N,B.Tech Computer Science,2025,s6@mail.example,+91 9810000822,Admitted
+304965 292238,DIT25008,ISHA MALIK,22/12/07,male,sc,N,N,N,N,B.Tech Electronics,2025,s7@mail.example,+91 9810000959,Admitted
+304965371385,DIT25009,AYUSH SHETTY,21/11/06,male,Gen,N,N,N,N,B.Tech Mechanical,2025,s8@mail.example,+91 9810001096,Admitted
+,DIT25010,TANVI PILLAI,08/04/07,Female,Gen,N,N,N,N,B.Tech Computer Science,2025,s9@mail.example,+91 9810001233,Admitted
+304965529763,DIT25011,RIYA BOSE,13/01/06,male,sc,N,N,N,N,B.Tech Electronics,2025,s10@mail.example,+91 9810001370,Admitted
+304965608959,DIT25012,SNEHA SHARMA,04/01/06,male,sc,N,N,N,N,B.Tech Mechanical,2025,s11@mail.example,+91 9810001507,Admitted
+304965688178,DIT25013,SHREYA RAO,31/02/05,Female,OBC,N,N,N,N,B.Tech Computer Science,2025,s12@mail.example,+91 9810001644,Admitted
+304965767362,DIT25014,SHREYA JOSHI,01/10/06,male,EWS,N,N,N,N,B.Tech Electronics,2025,s13@mail.example,+91 9810001781,Admitted
+304965846544,DIT25015,NEHA KAPOOR,03/05/06,male,Gen,N,N,N,N,B.Tech Mechanical,2025,s14@mail.example,+91 9810001918,Admitted
+304965925740,DIT25016,RIYA SHARMA,22/12/07,Female,sc,N,N,N,N,Btech Computer Science,2025,s15@mail.example,+91 9810002055,Admitted
+304966004949,DIT25017,AYUSH CHAUHAN,24/01/07,male,Gen,N,N,N,N,B.Tech Electronics,2025,s16@mail.example,+91 9810002192,Admitted
+304966084104,DIT25018,ADITYA YADAV,26/02/06,male,Gen,N,N,N,N,B.Tech Mechanical,2025,s17@mail.example,+91 9810002329,Admitted
+304966163327,DIT25019,KABIR KHAN,27/01/07,Female,Gen,Yes,N,N,N,B.Tech Computer Science,2025,s18@mail.example,+91 9810002466,Admitted
+304966242516,DIT25020,MEERA YADAV,03/04/06,male,OBC,N,N,N,N,B.Tech Electronics,2025,s19@mail.example,+91 9810002603,Admitted
+304966321707,DIT25021,ANANYA VERMA,20/07/06,male,general,N,N,N,N,B.Tech Mechanical,2025,s20@mail.example,+91 9810002740,Admitted
+304966400866,DIT25022,SIDDHARTH IYER,03/10/06,Female,Gen,N,N,Y,N,B.Tech Computer Science,2025,s21@mail.example,+91 9810002877,Admitted
+304966480059,DIT25023,ROHAN KAPOOR,26/12/07,male,Gen,N,N,N,Y,B.Tech Electronics,2025,s22@mail.example,+91 9810003014,Admitted
+304966559264,DIT25024,ZOYA JADHAV,04/09/07,male,EWS,N,N,N,N,B.Tech Mechanical,2025,s23@mail.example,+91 9810003151,Admitted
+304964737892,DIT25099,Rahul Bose,08/05/07,M,GEN,N,N,N,N,B.Tech Computer Science,2025,,,Admitted

@@ -17,13 +17,20 @@ export async function explainFlag(flag, detail) {
   const prompt = `You are an assistant for AICTE reviewers. In 2 short sentences, explain this flagged item in plain English and suggest one concrete next step. Do not invent facts.\nType: ${flag.type}\nMessage: ${flag.message}\nDetail: ${JSON.stringify(detail)}`;
   try {
     if (process.env.GEMINI_API_KEY) {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }), signal: AbortSignal.timeout(8000) },
-      );
-      const j = await r.json();
-      const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (t) return { text: t.trim(), source: 'gemini' };
+      // The main model can be briefly overloaded (503); the lite model is the fallback before the template.
+      for (const model of ['gemini-flash-latest', 'gemini-flash-lite-latest']) {
+        try {
+          const r = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }), signal: AbortSignal.timeout(9000) },
+          );
+          const j = await r.json();
+          const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (t) return { text: t.trim(), source: 'gemini' };
+        } catch (e) {
+          console.warn(`Gemini ${model} failed:`, e.message);
+        }
+      }
     } else if (process.env.ANTHROPIC_API_KEY) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
