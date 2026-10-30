@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { X, Loader2 } from 'lucide-react';
 
 export const Card = ({ className = '', children, ...p }) => <div className={`card ${className}`} {...p}>{children}</div>;
@@ -108,3 +108,26 @@ export const Freshness = ({ date }) => {
   const tone = d === null ? 'danger' : d <= 30 ? 'ok' : d <= 90 ? 'warn' : 'danger';
   return <Badge tone={tone}>Updated {ago(date)}</Badge>;
 };
+
+export function Count({ to }) {
+  const [v, setV] = useState(0);
+  const from = useRef(0);
+  useEffect(() => {
+    const start = from.current;
+    from.current = to;
+    if (typeof window !== 'undefined' && (window.matchMedia('(prefers-reduced-motion: reduce)').matches || Math.abs(to - start) < 2)) {
+      setV(to);
+      return;
+    }
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (t) => {
+      const p = Math.min(1, (t - t0) / 900);
+      setV(Math.round(start + (to - start) * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to]);
+  return <>{v.toLocaleString('en-IN')}</>;
+}
