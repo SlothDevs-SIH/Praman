@@ -106,13 +106,19 @@ export function seed() {
     }
 
     // Planted cross-institution duplicates: the same APAAR ID enrolled at a second institution in the same year.
-    for (const p of people.slice(0, 45)) {
-      const other = db.prepare('SELECT p.id pid, p.institution_id iid, p.level FROM programs p WHERE p.institution_id != ? AND p.level = ? ORDER BY RANDOM() LIMIT 1').get(p.iid, p.level);
-      if (!other) continue;
+    const insNotif = db.prepare('INSERT INTO notifications (institution_id, title, body, link, created_at) VALUES (?,?,?,?,?)');
+    people.slice(0, 45).forEach((p, idx) => {
+      const other = idx < 3 && p.iid !== 1
+        ? db.prepare('SELECT p.id pid, p.institution_id iid, p.level FROM programs p WHERE p.institution_id = 1 AND p.level = ? LIMIT 1').get(p.level)
+        : db.prepare('SELECT p.id pid, p.institution_id iid, p.level FROM programs p WHERE p.institution_id != ? AND p.level = ? ORDER BY RANDOM() LIMIT 1').get(p.iid, p.level);
+      if (!other) return;
       const r = insStu.run(apaarHash(p.id), encrypt(p.id), other.iid, `X${other.iid}${p.y % 100}${Math.floor(rnd() * 99999)}`, p.nm, p.dob, 'M', 'GENERAL', 0, 0, 0, 0, other.pid, p.y, null, null, 'ADMITTED', ts, ts);
       insCons.run(Number(r.lastInsertRowid), ts);
       planted.dups++;
-    }
+      if (other.iid === 1 || p.iid === 1) {
+        insNotif.run(1, 'Please confirm a possible duplicate enrolment', `Student ${p.nm} (${p.y}) appears enrolled at two institutions simultaneously. Please review in your Soft Handshake Inbox.`, '/institution/inbox', ts);
+      }
+    });
 
     // Extra registry identities that are not enrolled anywhere yet (used by the sample upload file).
     const spare = [];
@@ -159,7 +165,7 @@ export function seed() {
   return { planted, scan, demoStudent: demoStudent?.id };
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
   const r = seed();
   const n = db.prepare('SELECT COUNT(*) c FROM students').get().c;
   console.log('Seeded', n, 'students.', JSON.stringify(r));

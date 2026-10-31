@@ -149,4 +149,25 @@ r.put('/webhook', requireRole('institution'), (req, res) => {
   res.json({ ok: true });
 });
 
+r.get('/notifications', requireRole(), (req, res) => {
+  const u = req.user;
+  if (u.role === 'institution') {
+    const items = db.prepare('SELECT * FROM notifications WHERE institution_id = ? ORDER BY id DESC LIMIT 30').all(u.inst);
+    const unread = db.prepare('SELECT COUNT(*) c FROM notifications WHERE institution_id = ? AND read = 0').get(u.inst)?.c || 0;
+    const pendingH = db.prepare("SELECT COUNT(*) c FROM handshakes WHERE status = 'pending' AND (inst_a = ? OR inst_b = ?)").get(u.inst, u.inst)?.c || 0;
+    return res.json({ unread: unread + pendingH, items });
+  }
+  if (u.role === 'admin' || u.role === 'regulator') {
+    const openFlags = db.prepare("SELECT COUNT(*) c FROM flags WHERE status = 'open'").get()?.c || 0;
+    const items = db.prepare(`SELECT id, message as title, type || ' · ' || severity as body, created_at, 0 as read FROM flags WHERE status = 'open' ORDER BY id DESC LIMIT 20`).all();
+    return res.json({ unread: openFlags, items });
+  }
+  if (u.role === 'student') {
+    const checks = db.prepare('SELECT COUNT(*) c FROM verifications WHERE student_id = ?').get(u.stu)?.c || 0;
+    const items = db.prepare(`SELECT id, verifier_name as title, method || ' verification (' || result || ')' as body, created_at, 1 as read FROM verifications WHERE student_id = ? ORDER BY id DESC LIMIT 20`).all(u.stu);
+    return res.json({ unread: checks, items });
+  }
+  res.json({ unread: 0, items: [] });
+});
+
 export default r;

@@ -69,6 +69,27 @@ export function runScan() {
     byInst.get(s.institution_id).set(s.admission_year, s);
   }
   const intakeByInst = new Map(db.prepare('SELECT institution_id, SUM(approved_intake) t FROM programs GROUP BY institution_id').all().map((r) => [r.institution_id, r.t]));
+
+  // Ensure cross-institution duplicate APAAR enrolments have handshakes + CROSS_DUP flags
+  const tsScan = now();
+  const crossPairs = db.prepare(`
+    SELECT s1.id sid_a, s2.id sid_b, s1.institution_id inst_a, s2.institution_id inst_b, s1.apaar_hash, s1.admission_year y, s1.name
+    FROM students s1
+    JOIN students s2 ON s1.apaar_hash = s2.apaar_hash AND s1.id < s2.id AND s1.institution_id != s2.institution_id
+    WHERE s1.status = 'ADMITTED' AND s2.status = 'ADMITTED' AND s1.admission_year = s2.admission_year
+  `).all();
+  tx(() => {
+    for (const cp of crossPairs) {
+      const exists = db.prepare('SELECT id FROM handshakes WHERE (student_a = ? AND student_b = ?) OR (student_a = ? AND student_b = ?)').get(cp.sid_a, cp.sid_b, cp.sid_b, cp.sid_a);
+      if (!exists) {
+        db.prepare('INSERT INTO handshakes (apaar_hash, student_a, student_b, inst_a, inst_b, created_at) VALUES (?,?,?,?,?,?)')
+          .run(cp.apaar_hash, cp.sid_a, cp.sid_b, cp.inst_a, cp.inst_b, tsScan);
+      }
+      db.prepare('INSERT OR IGNORE INTO flags (type, severity, institution_id, student_id, year, message, dedupe_key, created_at) VALUES (?,?,?,?,?,?,?,?)')
+        .run('CROSS_DUP', 'medium', cp.inst_b, cp.sid_b, cp.y, `Possible duplicate enrolment across institutions (${cp.name})`, `dup:${cp.sid_a}:${cp.sid_b}`, tsScan);
+    }
+  });
+
   const dups = new Map(db.prepare("SELECT institution_id, COUNT(*) n FROM flags WHERE type = 'CROSS_DUP' GROUP BY institution_id").all().map((r) => [r.institution_id, r.n]));
 
   const feats = [];

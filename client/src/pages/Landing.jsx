@@ -1,28 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import {
-  ArrowRight,
-  GitMerge,
-  Building2,
-  Upload,
-  ShieldCheck,
-  BadgeCheck,
-  Database,
-  LineChart,
-  ScanLine,
-  CheckCircle2,
-  Sparkles,
-  Lock,
-  Layers
-} from 'lucide-react';
 import { Logo, LangToggle } from '../components/Shell.jsx';
 import { useT } from '../lib/i18n.jsx';
 import { useAuth, HOME } from '../lib/auth.jsx';
+import { api } from '../lib/api.js';
 import { DotBackdrop } from '../components/DotBackdrop.jsx';
+import { AuthPanel } from '../components/AuthPanel.jsx';
 import { TextAnimate } from '../components/ui/text-animate.jsx';
 import { OrganicButton } from '../components/ui/organic-button.jsx';
-import { InteractiveHoverButton } from '../components/ui/interactive-hover-button.jsx';
 import { StepWidget } from '../components/StepWidget.jsx';
 import { News } from '../components/ui/sidebar-news.jsx';
 import { CoverPopup } from '../components/CoverPopup.jsx';
@@ -117,266 +103,256 @@ function Ring({ pct }) {
 
 const STEPS = [
   {
-    t: 'Unified APAAR Registry & Autocorrect',
-    sum: 'Student records resolve to verified APAAR IDs. Common typographical errors and date format mismatches are fixed on upload before causing issues.',
+    t: 'Pre-flight upload autocorrect',
+    sum: 'Before rejecting an admission file, Praman repairs formatting errors, normalises categories and catches single-digit APAAR ID typos against the registry.',
     more: [
-      'Matches 12-digit APAAR ID against the centralized registry, autocorrecting 1-digit typos.',
-      'Institutions receive an instant pre-flight summary: e.g. "142 auto-fixed, 3 need manual review".',
-      'Every upload is encrypted with AES-256-GCM and HMAC-keyed for zero-leakage lookups.',
+      'Fixes date formats (3/4/05 → 2005-04-03), trims extra spaces, and maps Gen/GEN/general to GENERAL.',
+      'Validates the 12-digit APAAR Verhoeff checksum and suggests the nearest verified registry match.',
+      'Nothing is committed until the registrar reviews the receipt and confirms.',
     ],
   },
   {
-    t: 'Cross-Institution Duplicate Soft Handshake',
-    sum: 'If an APAAR ID is active at two institutions simultaneously, both colleges receive a private handshake alert to reconcile enrollment peacefully.',
+    t: 'Seat Headroom & intake gate',
+    sum: 'Each approved programme displays a live seat headroom bar so institutions see their remaining quota before an over-admission happens.',
     more: [
-      'Replaces contentious legal disputes with an automated, quiet bilateral verification workflow.',
-      'Registrars confirm admission withdrawal, transfer certificates, or escalation.',
-      'Every action is chained into an immutable SHA-256 audit ledger.',
+      'Separates regular approved intake from supernumerary quotas (NRI, OCI and Foreign Nationals).',
+      'Uploads that would push regular enrolment past approved intake are flagged at the gate.',
+      'Isolation Forest + rule scoring surfaces unusual year-on-year spikes for AICTE review.',
     ],
   },
   {
-    t: 'Dynamic Headroom Meter & Verification Gate',
-    sum: 'Institutions monitor real-time seat headroom before admitting students, preventing over-admission violations at the source.',
+    t: 'Soft Handshake & minimal disclosure',
+    sum: 'Cross-institution duplicate APAAR enrolments trigger a private bilateral check, while employer verifications reveal only the minimum required facts.',
     more: [
-      'Calculates approved intake + supernumerary quotas (NRI/OCI/FN) in real-time.',
-      'Employers verify degrees with minimum disclosure without seeing private DOB or categories.',
-      'Every credential generates a digitally signed Ed25519 QR code readable offline.',
+      'Both colleges are quietly asked to confirm withdrawal or transfer—resolving most duplicates without a formal dispute.',
+      'Employers verifying an APAAR ID or signed Ed25519 QR code never see DOB, category or phone numbers.',
+      'Every check is written to the student’s “Who Checked Me?” log and a hash-chained audit trail.',
     ],
   },
 ];
 
 const COVERS = [
   {
-    t: 'Single-Window AICTE Dashboard',
+    t: 'Single-window AICTE dashboard',
     tag: 'Overview',
     img: 'dash',
-    d: 'Every student enrollment, compliance flag, and institutional quota status on one unified screen.',
+    d: 'Every institution, approved intake, actual enrolment and anomaly flag on one screen.',
     more: [
-      'Real-time metrics for admitted students, active colleges, duplicate checks, and pending flags.',
-      'Interactive risk scoring per institution with automatic detection of capacity breaches.',
-      'Tailored role-based views for AICTE Admins, Institutions, Employers, and Regulators.',
+      'Live counts for total enrolled, approved intake fill rate, NRI/OCI/FN supernumerary seats and open flags.',
+      'State-wise intake vs. enrolment comparison and multi-year admission trends.',
+      'Institutions ranked by anomaly risk score with plain-language reasons and data-freshness badges.',
     ],
   },
   {
-    t: 'Seat Headroom & Supernumerary Quota',
+    t: 'Pre-flight autocorrect & headroom',
     tag: 'Prevention',
     img: 'track',
-    d: 'Visual gauges track seat availability per program before uploads are finalized.',
+    d: 'Autocorrect messy CSV uploads in one click while watching live course seat headroom.',
     more: [
-      'Enforces AICTE intake caps with dynamic threshold alerts (Green/Amber/Red).',
-      'Separate accounting for General, Supernumerary, NRI, and OCI admissions.',
-      'Instant CSV upload pre-validation prevents illegal admissions at the point of entry.',
+      'Shows a row-by-row receipt of auto-repaired dates, category spellings and APAAR checksum fixes.',
+      'Displays live progress bars per programme (e.g. 118/120 seats used, 2 left) before saving.',
+      'Prevents over-admission breaches at the source rather than punishing institutions months later.',
     ],
   },
   {
-    t: 'Duplicate Enrolment Detection',
-    tag: 'Compliance',
+    t: 'Duplicate Soft Handshake',
+    tag: 'Reconciliation',
     img: 'overlap',
-    d: 'Identifies simultaneous double enrollments and initiates the bilateral soft handshake.',
+    d: 'Silent bilateral resolution when one APAAR ID appears enrolled at two colleges.',
     more: [
-      'Automated bilateral notifications sent to both institution registrars.',
-      'Prevents scholarship fraud and phantom student registrations.',
-      'Audit log tracks timestamps and decisions from initiation to resolution.',
+      'Detects overlapping full-time enrolments across AICTE-approved institutions automatically.',
+      'Notifies both registrars privately to confirm withdrawal, transfer or dispute.',
+      'Automatically clears the duplicate flag once either institution confirms transfer or withdrawal.',
     ],
   },
   {
-    t: 'Minimum Disclosure Verification',
-    tag: 'Privacy',
-    img: 'search',
-    d: 'Verifiers and employers confirm graduation without seeing private personal records.',
-    more: [
-      'Confirms award of degree and passing year while keeping date of birth and category protected.',
-      'Students see a live "Who Checked Me" audit log in their personal portal.',
-      'Full student consent control over who can verify their credentials.',
-    ],
-  },
-  {
-    t: 'Tamper-Evident Signed QR Certificates',
+    t: 'Tamper-evident audit & QR',
     tag: 'Security',
     img: 'flow',
-    d: 'Digitally signed degree certificates that can be verified offline in seconds.',
+    d: 'Hash-chained audit ledger and Ed25519-signed degree certificates with APAAR ID.',
     more: [
-      'Cryptographically signed with Ed25519 keys; immune to forgery and photoshop alterations.',
-      'Instant scan with any mobile camera or built-in scanner.',
-      'Public verification portal shows instant authentic status with zero latency.',
+      'Every upload, flag resolution, consent change and verification carries the SHA-256 hash of the previous entry.',
+      'Auditors can re-verify the entire chain with one click to prove zero tampering.',
+      'Generates printable PDF degree certificates printing both APAAR ID and Student ID alongside a signed QR code.',
     ],
   },
   {
-    t: 'AI Compliance Analysis & Reports',
-    tag: 'Intelligence',
-    img: 'report',
-    d: 'Plain-language summaries of institutional anomalies and enrollment distributions.',
+    t: 'Minimal-disclosure verification',
+    tag: 'Privacy',
+    img: 'search',
+    d: 'Employers and regulators confirm degrees by APAAR ID or QR without exposing private data.',
     more: [
-      'Generates automated plain-English explanations of flagged discrepancies.',
-      'One-click export of executive summary briefs in PDF and CSV format.',
-      'Tracks multi-year admission trends across all AICTE-approved institutions.',
+      'Returns only verified holder name, programme, institution, admission year and graduation status.',
+      'Date of birth, category, contact details and NRI status remain hidden from employers by default.',
+      'Students control employer/regulator consent switches and see every check in their “Who Checked Me?” log.',
+    ],
+  },
+  {
+    t: 'Policy & accreditation reports',
+    tag: 'Reporting',
+    img: 'report',
+    d: 'Exportable state, intake utilisation, over-intake and special-category reports.',
+    more: [
+      'Ready-made tables for state-wise enrolment, intake utilisation, supernumerary seats and high-risk colleges.',
+      'One-click CSV and formatted PDF export for AICTE policy-making and accreditation.',
+      'Every report generation is attributed and recorded in the audit trail.',
     ],
   },
 ];
 
 const EVIDENCE = [
-  { n: 100, of: 100, title: 'Duplicate Enrolments Caught', note: 'Simulated cross-college duplicate registrations detected before seat lock-in.', pct: 1.0 },
-  { n: 98, of: 100, title: 'Upload Typos Auto-Corrected', note: 'Single-digit APAAR errors and date formatting discrepancies fixed automatically.', pct: 0.98 },
-  { n: 100, of: 100, title: 'Tamper-Evident QR Verification', note: 'Forged or altered credentials fail validation instantaneously.', pct: 1.0 },
+  {
+    n: 45,
+    of: 45,
+    title: 'Cross-college duplicates caught',
+    note: 'Every planted duplicate APAAR ID across 60 synthetic institutions was detected and routed to a bilateral Soft Handshake.',
+  },
+  {
+    n: 24,
+    of: 25,
+    title: 'Messy upload rows auto-repaired',
+    note: 'Date slashes, category variants, whitespace and single-digit APAAR typos in the sample CSV are fixed before commit.',
+  },
+  {
+    n: 60,
+    of: 60,
+    title: 'Institutions scored & hash-chained',
+    note: 'All 60 seeded institutions are continuously evaluated for over-intake breaches and anchored in a verifiable SHA-256 audit chain.',
+  },
 ];
 
 export default function Landing() {
   const { t } = useT();
   const { user } = useAuth();
   const nav = useNavigate();
+  const [live, setLive] = useState(null);
   const [open, setOpen] = useState(null);
   const [allGone, setAllGone] = useState(false);
   const [round, setRound] = useState(0);
 
+  useEffect(() => {
+    api('/auth/public/live')
+      .then(setLive)
+      .catch(() => setLive(null));
+  }, []);
+
   return (
     <ExpandableScreen layoutId="cta-card" triggerRadius="100px" contentRadius="24px">
-      <div className="land min-h-screen">
+      <div className="land">
         <DotBackdrop />
 
-        {/* Navigation Bar */}
-        <header className="lnav">
-          <Logo size={34} />
-          <nav aria-label="Sections">
+        <header className="lbar">
+          <Logo size={32} />
+          <nav aria-label="Page sections">
             <a href="#how">{t('How it works')}</a>
-            <a href="#covers">{t('What it covers')}</a>
-            <a href="#evidence">{t('Evidence')}</a>
-            <Link to={user ? HOME[user.role] : '/login'} className="font-bold text-primary hover:underline">
-              {user ? t('Dashboard') : t('Sign in')}
-            </Link>
+            <a href="#covers">What it covers</a>
+            <a href="#evidence">Evidence</a>
+            <Link to="/verify">Verify APAAR</Link>
+            <Link to={user ? HOME[user.role] : '/login'}>{user ? t('Open the dashboard') : t('Sign in')}</Link>
           </nav>
           <div className="flex items-center gap-2">
             <LangToggle />
-            {user ? (
-              <Link to={HOME[user.role]} className="btn btn-primary btn-sm">
-                {t('Open platform')}
-              </Link>
-            ) : (
-              <ExpandableScreenTrigger>
-                <button type="button" className="btn btn-primary btn-sm cursor-pointer">
-                  {t('Sign in')} <ArrowRight size={14} />
-                </button>
-              </ExpandableScreenTrigger>
-            )}
           </div>
         </header>
 
-        {/* Hero Section */}
-        <section className="hero" aria-labelledby="hero-head">
+        <section className="hero" aria-labelledby="h1">
           <div className="hero-art">
             <SkylineArt />
           </div>
           <div className="hero-copy">
-            <span className="badge b-info mb-3">
-              <Sparkles size={13} className="text-primary" /> AICTE · APAAR ID Registry · Smart India Hackathon
-            </span>
-            <h1 id="hero-head">
-              <TextAnimate as="span" animation="blurInUp" by="word">
-                Verified students.
+            <p className="eyebrow">AICTE · APAAR ID Student Data Management & Verification · Team SlothDevs</p>
+            <h1 id="h1">
+              <TextAnimate as="span" animation="blurInUp" by="word" className="inline">
+                Verified students,
               </TextAnimate>{' '}
               <mark className="hl">
-                <TextAnimate as="span" animation="blurInUp" by="word" delay={0.2}>
-                  Honest
+                <TextAnimate as="span" animation="blurInUp" by="word" delay={0.25} className="inline">
+                  honest seats
                 </TextAnimate>
               </mark>{' '}
-              <TextAnimate as="span" animation="blurInUp" by="word" delay={0.35}>
-                seats.
+              <TextAnimate as="span" animation="blurInUp" by="word" delay={0.35} className="inline">
+                across every college.
               </TextAnimate>
             </h1>
             <TextAnimate as="p" animation="blurInUp" by="line" delay={0.5} className="lead">
-              One national student data management and verification platform linked to APAAR ID. It prevents over-admission at the source and catches discrepancies before they become violations.
+              AICTE receives student admissions from approved institutions in different formats. PRAMAN links every enrolment to a 12-digit APAAR ID, repairs upload errors before they are saved, prevents over-admission with live seat headroom meters, and resolves cross-college duplicates quietly.
             </TextAnimate>
-
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              {user ? (
-                <OrganicButton
-                  href={HOME[user.role]}
-                  size="lg"
-                  label={t('Open dashboard')}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav(HOME[user.role]);
-                  }}
-                />
-              ) : (
-                <ExpandableScreenTrigger>
-                  <OrganicButton href="#get-started" size="lg" label={t('Open platform')} onClick={(e) => e.preventDefault()} />
-                </ExpandableScreenTrigger>
-              )}
-              <Link to="/verify" className="btn btn-hl" style={{ minHeight: '44px' }}>
-                <ScanLine size={18} /> {t('Verify a student record')}
-              </Link>
-            </div>
-            <p className="small mt-4">
-              Protected by AES-256 encryption, Ed25519 digital signatures, and automated duplicate resolution.
+            {user ? (
+              <OrganicButton
+                href={HOME[user.role]}
+                size="lg"
+                label="Open the dashboard"
+                onClick={(e) => {
+                  e.preventDefault();
+                  nav(HOME[user.role]);
+                }}
+              />
+            ) : (
+              <ExpandableScreenTrigger>
+                <OrganicButton href="#get-started" size="lg" label="Get started" onClick={(e) => e.preventDefault()} />
+              </ExpandableScreenTrigger>
+            )}
+            <p className="small">
+              Our platform doesn’t just catch errors—it prevents them at the source and protects student privacy by default.
             </p>
           </div>
 
-          {/* Floating Live Card */}
           <div className="floatcard" aria-live="polite">
-            <div className="row mb-2" style={{ justifyContent: 'space-between' }}>
-              <div className="flex items-center gap-2">
-                <div className="pulse-dot" />
-                <strong className="text-sm">Real-time APAAR Intake Monitor</strong>
-              </div>
-              <span className="badge b-ok">142 Auto-fixed</span>
-            </div>
-
-            <div className="space-y-2.5 my-3">
-              {[
-                ['B.Tech Computer Science', 81, 90, '9 seats available'],
-                ['B.Tech Electronics & Comm.', 75, 90, '15 seats available'],
-                ['Master of Business Admin (MBA)', 118, 120, '2 seats left'],
-              ].map(([prog, used, cap, note]) => (
-                <div key={prog} className="rounded-lg bg-surface p-2.5 border border-line">
-                  <div className="flex justify-between text-xs mb-1">
-                    <b className="truncate max-w-[200px]">{prog}</b>
-                    <span className="tab-num font-bold text-primary">
-                      {used}/{cap}
-                    </span>
-                  </div>
-                  <div className="meter mb-1">
-                    <i
-                      style={{
-                        width: `${(used / cap) * 100}%`,
-                        background: used / cap > 0.95 ? 'var(--hl)' : 'var(--ok)',
-                      }}
-                    />
-                  </div>
-                  <div className="text-[.72rem] text-muted-foreground text-right">{note}</div>
+            {live ? (
+              <>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <strong>Cross-Institution APAAR Duplicate – Soft Handshake</strong>
+                  <span className="badge b-warn">Pending Check</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 rounded-lg p-2.5 text-xs bg-amber-50 text-amber-800 border border-amber-200">
-              <GitMerge size={16} className="shrink-0 text-amber-600" />
-              <span>1 duplicate enrollment detected across 2 colleges. Soft handshake in progress.</span>
-            </div>
-
-            <div className="livestats">
-              <div>
-                <span className="n"><Count to={3420} /></span>
-                <span className="l">Verified students</span>
-              </div>
-              <div>
-                <span className="n"><Count to={48} /></span>
-                <span className="l">Institutions active</span>
-              </div>
-              <div>
-                <span className="n"><Count to={0} /></span>
-                <span className="l">Quota breaches</span>
-              </div>
-            </div>
+                {live.sample_handshake ? (
+                  <>
+                    <p style={{ margin: '.5rem 0 .2rem' }}>
+                      <strong>{live.sample_handshake.student_name} · {live.sample_handshake.program_name} ({live.sample_handshake.admission_year})</strong>
+                    </p>
+                    <p className="muted" style={{ margin: 0 }}>
+                      Active at {live.sample_handshake.inst_a_name} and {live.sample_handshake.inst_b_name}
+                    </p>
+                    <p className="muted" style={{ margin: '.6rem 0 0', fontSize: '.85rem' }}>
+                      Why: same 12-digit APAAR hash enrolled in overlapping full-time programmes · both registrars notified privately.
+                    </p>
+                  </>
+                ) : (
+                  <p className="muted">No duplicate handshakes are pending right now.</p>
+                )}
+                <div className="livestats">
+                  <div>
+                    <span className="n">
+                      <Count to={live.students} />
+                    </span>
+                    <span className="l">students verified</span>
+                  </div>
+                  <div>
+                    <span className="n">
+                      <Count to={live.institutions} />
+                    </span>
+                    <span className="l">AICTE institutions</span>
+                  </div>
+                  <div>
+                    <span className="n">
+                      <Count to={live.open_flags} />
+                    </span>
+                    <span className="l">open anomaly flags</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="muted">Reading the running repository…</p>
+            )}
           </div>
         </section>
 
-        {/* How It Works Section */}
         <section className="section" id="how">
           <TextAnimate as="h2" animation="blurInUp" by="word" once>
             How it works
           </TextAnimate>
           <div className="how-box">
             <p className="how-lead">
-              Three safeguards sit between student admission uploads and AICTE registry approval. Tap any step to explore its mechanism.
+              Three invisible helpers sit between an institution’s admission file and AICTE’s central repository. Tap a step to open it.
             </p>
             <div className="how-grid">
               {STEPS.map((st, i) => (
@@ -386,7 +362,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Interactive Stacked Cards Deck Section */}
         <section className="section" id="covers" style={{ paddingTop: 0 }}>
           <TextAnimate as="h2" animation="blurInUp" by="word" once>
             What it covers
@@ -394,26 +369,26 @@ export default function Landing() {
           <div className="cover-wrap">
             <div className="cover-copy">
               <p className="lead">
-                Six core modules power the Praman platform. The cards below are stacked: <strong>swipe</strong> the top card away to see the next, or <strong>click</strong> it to inspect full details.
+                Six screens make up the platform. The cards are stacked: <strong>swipe</strong> the top one away to see the next, or <strong>click</strong> it to read what that part does.
               </p>
               <ul className="cover-hints">
                 <li>
-                  <span>↔</span> Swipe left or right to dismiss cards
+                  <span aria-hidden="true">↔</span> Swipe left or right to dismiss
                 </li>
                 <li>
-                  <span>◉</span> Click any card to read full specifications
+                  <span aria-hidden="true">◉</span> Click to open the details
                 </li>
               </ul>
               {allGone && (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn primary"
                   onClick={() => {
                     setAllGone(false);
                     setRound((r) => r + 1);
                   }}
                 >
-                  Show cards again
+                  Show the cards again
                 </button>
               )}
             </div>
@@ -428,7 +403,7 @@ export default function Landing() {
                     summary: c.d,
                     image: `/shots/${c.img}.jpg`,
                   }))}
-                  onOpen={(a) => setOpen(COVERS.find((c) => c.img === a.href) || null)}
+                  onOpen={(a) => setOpen(COVERS.find((c) => c.img === a.href) ?? null)}
                   onEmpty={() => setAllGone(true)}
                   emptyLogo={<MarkDraw />}
                 />
@@ -439,17 +414,22 @@ export default function Landing() {
           <CoverPopup
             open={!!open}
             onClose={() => setOpen(null)}
-            title={open?.t || ''}
-            subtitle={open?.tag || ''}
+            title={open?.t ?? ''}
+            subtitle={open?.tag ?? ''}
             media={
               open && (
-                <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#12306f] via-primary to-[#2459d6] p-6 text-white text-center">
-                  <div className="space-y-3">
-                    <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
-                      <Layers size={32} className="text-orange-400" />
-                    </div>
-                    <h4 className="text-xl font-bold">{open.t}</h4>
-                    <span className="badge b-info bg-white/20 text-white">{open.tag}</span>
+                <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#12306f] via-primary to-[#2459d6] p-5">
+                  <div
+                    className="w-full overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-white/30"
+                    style={{ aspectRatio: '0.72' }}
+                  >
+                    <img
+                      src={`/shots/${open.img}.jpg`}
+                      alt={`${open.t}, a screen of the running prototype`}
+                      className="block max-w-none"
+                      style={{ width: '230%', marginLeft: '-43%' }}
+                      referrerPolicy="no-referrer"
+                    />
                   </div>
                 </div>
               )
@@ -460,130 +440,104 @@ export default function Landing() {
                 <p className="text-base leading-relaxed text-foreground">{open.d}</p>
                 {open.more.map((m, j) => (
                   <div key={m} className="flex items-start gap-3">
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {j + 1}
                     </span>
-                    <p className="text-muted-foreground text-sm">{m}</p>
+                    <p className="text-muted-foreground">{m}</p>
                   </div>
                 ))}
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Praman Smart India Hackathon Architecture</span>
-                  <Link to="/login" className="font-bold text-primary hover:underline">
-                    Access Dashboard →
-                  </Link>
-                </div>
+                <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+                  Screen from the running prototype, showing synthetic APAAR records.
+                </p>
               </div>
             )}
           </CoverPopup>
         </section>
 
-        {/* Evidence & Metrics Section */}
         <section className="section" id="evidence" style={{ paddingTop: 0 }}>
           <TextAnimate as="h2" animation="blurInUp" by="word" once>
-            Measured evidence & reliability
+            What we have measured, and what we have not
           </TextAnimate>
-          <p className="muted" style={{ maxWidth: '44rem' }}>
-            Synthetic datasets replicating real-world AICTE institutions demonstrate the zero-friction accuracy of our APAAR-based reconciliation engine.
+          <p className="muted" style={{ maxWidth: '46rem' }}>
+            APAAR (via DigiLocker/ABC) and AICTE’s internal admission systems do not expose public APIs, so this prototype runs against a 60-institution synthetic registry with planted over-intake breaches, messy CSV uploads and cross-college duplicate enrolments.
           </p>
-
           <div className="evi-grid">
-            {EVIDENCE.map((item) => (
-              <div key={item.title} className="evi">
+            {EVIDENCE.map((e) => (
+              <div className="evi" key={e.title}>
                 <div className="evi-ringwrap">
-                  <Ring pct={item.pct} />
+                  <Ring pct={e.n / e.of} />
                   <div className="evi-num">
-                    <b>{item.n}%</b>
-                    <span>ACCURACY</span>
+                    <b>
+                      <Count to={e.n} />
+                    </b>
+                    <span>of {e.of}</span>
                   </div>
                 </div>
-                <h3>{item.title}</h3>
-                <p>{item.note}</p>
+                <h3>{e.title}</h3>
+                <p>{e.note}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="lfoot">
-          <div>
-            <strong>Praman</strong> · Built for Smart India Hackathon (SIH) · APAAR ID-based Student Data Management & Verification
-          </div>
-          <div>
-            All student records are cryptographically secured. Demo credentials synthetic.
-          </div>
+          <span>PRAMAN · Team SlothDevs · Smart India Hackathon · AICTE APAAR ID Verification Platform</span>
+          <span>
+            <Link to="/login">Sign in</Link> · <Link to="/verify">Verify a record</Link> · All student records are synthetic
+          </span>
         </footer>
-      </div>
 
-      {/* Expandable Screen Content for Modal Authentication / Quick Sign In */}
-      <ExpandableScreenContent className="xs-content">
-        <div className="xs-center">
-          <div className="xs-grid">
-            <div className="xs-left text-white">
-              <span className="badge bg-white/20 text-white mb-4">Official Portal</span>
-              <h2>Praman Platform Access</h2>
-              <ul className="xs-points">
-                <li>
-                  <span><CheckCircle2 size={18} /></span>
-                  <div>
-                    <strong>Institution Registrars:</strong> Upload batches, monitor headroom meters, and resolve duplicate enrolments.
-                  </div>
-                </li>
-                <li>
-                  <span><ShieldCheck size={18} /></span>
-                  <div>
-                    <strong>AICTE Administrators:</strong> High-level compliance overview, anomaly detection, and tamper-evident audit trails.
-                  </div>
-                </li>
-                <li>
-                  <span><Lock size={18} /></span>
-                  <div>
-                    <strong>Employers & Verifiers:</strong> Minimum disclosure degree verification with cryptographically signed tokens.
-                  </div>
-                </li>
-              </ul>
-              <div className="xs-stats">
-                <div><b>100%</b><span>Ed25519 Signatures</span></div>
-                <div><b>0%</b><span>Over-admissions</span></div>
-                <div><b>Real-time</b><span>Bilateral Handshakes</span></div>
-              </div>
-            </div>
-
-            <div className="xs-right">
-              <h3 className="text-xl font-extrabold text-neutral-900 mb-2">Sign in to your account</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Choose your designated role or use pre-configured hackathon demo credentials.
-              </p>
-
-              <div className="grid gap-2 mb-4">
-                {[
-                  ['AICTE Admin', 'admin@aicte.demo', 'Admin@123', 'AICTE Central Authority'],
-                  ['Institution Principal', 'institute@demo.edu', 'Inst@123', 'Engineering College Portal'],
-                  ['Employer Verifier', 'employer@demo.com', 'Emp@123', 'Corporate Credential Checker'],
-                  ['Student', 'student@demo.in', 'Stud@123', 'Personal APAAR Record & Consent'],
-                ].map(([role, email, pass, desc]) => (
-                  <Link
-                    key={role}
-                    to={`/login?email=${encodeURIComponent(email)}`}
-                    className="flex items-center justify-between p-3 rounded-xl border border-line hover:border-primary hover:bg-slate-50 transition-all text-left"
-                  >
+        <ExpandableScreenContent className="xs-content">
+          <div className="xs-center">
+            <div className="xs-grid">
+              <div className="xs-left">
+                <TextAnimate as="h2" animation="blurInUp" by="word">
+                  Join or sign in to PRAMAN
+                </TextAnimate>
+                <ul className="xs-points">
+                  <li>
+                    <span aria-hidden="true">✓</span>
+                    Pre-flight CSV autocorrect and live seat headroom meters prevent admission errors before they reach AICTE.
+                  </li>
+                  <li>
+                    <span aria-hidden="true">⇄</span>
+                    Bilateral Soft Handshakes resolve cross-institution APAAR duplicates quietly without public accusation.
+                  </li>
+                  <li>
+                    <span aria-hidden="true">☑</span>
+                    Minimal-disclosure verification and signed Ed25519 QR certificates protect student privacy by default.
+                  </li>
+                </ul>
+                {live && (
+                  <div className="xs-stats">
                     <div>
-                      <div className="font-bold text-sm text-neutral-900">{role}</div>
-                      <div className="text-[.75rem] text-muted-foreground">{desc}</div>
+                      <b>
+                        <Count to={live.students} />
+                      </b>
+                      <span>synthetic students</span>
                     </div>
-                    <ArrowRight size={15} className="text-primary" />
-                  </Link>
-                ))}
+                    <div>
+                      <b>
+                        <Count to={live.institutions} />
+                      </b>
+                      <span>institutions</span>
+                    </div>
+                    <div>
+                      <b>
+                        <Count to={live.pending_handshakes} />
+                      </b>
+                      <span>active handshakes</span>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <div className="pt-3 border-t border-line text-center">
-                <Link to="/login" className="btn btn-primary w-full">
-                  Proceed to Login Form →
-                </Link>
+              <div className="xs-right">
+                <AuthPanel />
               </div>
             </div>
           </div>
-        </div>
-      </ExpandableScreenContent>
+        </ExpandableScreenContent>
+      </div>
     </ExpandableScreen>
   );
 }

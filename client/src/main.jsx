@@ -1,13 +1,13 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/auth.jsx';
 import { I18n } from './lib/i18n.jsx';
 import { Toaster } from './components/ui.jsx';
 import Shell from './components/Shell.jsx';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
+import Onboarding from './pages/Onboarding.jsx';
 import PublicVerify from './pages/PublicVerify.jsx';
 import Overview from './pages/admin/Overview.jsx';
 import Institutions from './pages/admin/Institutions.jsx';
@@ -23,14 +23,15 @@ import Developers from './pages/institution/Developers.jsx';
 import Verify from './pages/Verify.jsx';
 import MyRecord from './pages/student/MyRecord.jsx';
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+export default function App() {
+  return (
     <BrowserRouter>
       <I18n>
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/v/:token" element={<PublicVerify />} />
             <Route element={<Shell />}>
               <Route path="/admin" element={<Overview />} />
@@ -53,5 +54,5 @@ createRoot(document.getElementById('root')).render(
         </AuthProvider>
       </I18n>
     </BrowserRouter>
-  </React.StrictMode>,
-);
+  );
+}
